@@ -64,23 +64,23 @@ class fot_Workspace:
 
     FUNCTION = "construct_data"
     def construct_data(self, codename=None, codename_override=None, width=640, height=480, **kwargs):
-        print("fot_Workspace constructing data")
+        # print("fot_Workspace constructing data")
     
         actual_codename = codename_override if codename_override is not None else codename
-        print(f" - actual_codename = {actual_codename}")
+        # print(f" - actual_codename = {actual_codename}")
 
         user_dir = folder_paths.get_user_directory()
-        print(f" - user_dir = {user_dir}")
+        # print(f" - user_dir = {user_dir}")
 
         workspaces_dir = os.path.join(user_dir, 'workspaces')
 
         Path(workspaces_dir).mkdir(parents=True, exist_ok=True)
-        print(f" - workspaces_dir = {workspaces_dir}")
+        # print(f" - workspaces_dir = {workspaces_dir}")
 
         workspace_dir = os.path.join(workspaces_dir, actual_codename)
 
         Path(workspace_dir).mkdir(parents=True, exist_ok=True)
-        print(f" - workspace_dir = {workspace_dir}")
+        # print(f" - workspace_dir = {workspace_dir}")
 
         workspace_json_filename = os.path.join(workspace_dir, 'workspace.json')
 
@@ -207,7 +207,7 @@ class fot_Folder:
         inputs = {
             "required": {
                 "workspace": ("WORKSPACE",),
-                "folder": ("STRING", {"default": ""}),
+                "folder": ("STRING", {"default": "", "forceInput": False}),
             },
             "optional": {
             },
@@ -229,9 +229,9 @@ class fot_Folder:
 
     FUNCTION = "expose_data"
     def expose_data(self, workspace, folder, **kwargs):
-        print(f"fot_Folder exposing data", workspace)
+        # print(f"fot_Folder exposing data", workspace)
         codename = workspace["codename"]
-        print(f"codename = {codename}")
+        # print(f"codename = {codename}")
 
         user_dir = folder_paths.get_user_directory()
         workspaces_dir = os.path.join(user_dir, 'workspaces')
