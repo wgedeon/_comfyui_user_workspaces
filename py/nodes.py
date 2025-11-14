@@ -13,10 +13,10 @@ WORKSPACE_DEFAULT = "default"
 
 def get_workspace_list() -> list[str]:
 
-    user_dir = folder_paths.get_user_directory()
+    home_dir = folder_paths.get_output_directory() # get_user_directory()
     # print(f" - user_dir = {user_dir}")
 
-    workspaces_dir = os.path.join(user_dir, 'workspaces')
+    workspaces_dir = os.path.join(home_dir, 'workspaces')
 
     Path(workspaces_dir).mkdir(parents=True, exist_ok=True)
     # print(f" - workspaces_dir = {workspaces_dir}")
@@ -69,10 +69,10 @@ class fot_Workspace:
         actual_codename = codename_override if codename_override is not None else codename
         # print(f" - actual_codename = {actual_codename}")
 
-        user_dir = folder_paths.get_user_directory()
+        home_dir = folder_paths.get_output_directory() # get_user_directory()
         # print(f" - user_dir = {user_dir}")
 
-        workspaces_dir = os.path.join(user_dir, 'workspaces')
+        workspaces_dir = os.path.join(home_dir, 'workspaces')
 
         Path(workspaces_dir).mkdir(parents=True, exist_ok=True)
         # print(f" - workspaces_dir = {workspaces_dir}")
@@ -163,10 +163,10 @@ class fot_WorkspaceReadOnly:
         if workspace is None:
             # print(f" - codename = {codename}")
 
-            user_dir = folder_paths.get_user_directory()
+            home_dir = folder_paths.get_output_directory() # get_user_directory()
             # print(f" - user_dir = {user_dir}")
 
-            workspaces_dir = os.path.join(user_dir, 'workspaces')
+            workspaces_dir = os.path.join(home_dir, 'workspaces')
 
             Path(workspaces_dir).mkdir(parents=True, exist_ok=True)
             # print(f" - workspaces_dir = {workspaces_dir}")
@@ -233,8 +233,8 @@ class fot_Folder:
         codename = workspace["codename"]
         # print(f"codename = {codename}")
 
-        user_dir = folder_paths.get_user_directory()
-        workspaces_dir = os.path.join(user_dir, 'workspaces')
+        home_dir = folder_paths.get_output_directory() # get_user_directory()
+        workspaces_dir = os.path.join(home_dir, 'workspaces')
         workspace_dir = os.path.join(workspaces_dir, codename)
         path_full = os.path.join(workspace_dir, folder)
     
