@@ -55,8 +55,8 @@ class fot_Workspace:
             }
         }
 
-    RETURN_TYPES = ("WORKSPACE", "STRING", "INT", "INT", "FOLDERS",)
-    RETURN_NAMES = ("workspace", "codename", "width", "height", "folders",)
+    RETURN_TYPES = ("WORKSPACE", "STRING", "INT", "INT",)
+    RETURN_NAMES = ("workspace", "codename", "width", "height",)
     OUTPUT_IS_LIST = (False, False, False, False, True)
     OUTPUT_NODE = True
 
@@ -249,6 +249,6 @@ NODE_CLASS_MAPPINGS = {
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "fot_Workspace": "Workspace",
-    "fot_WorkspaceReadOnly": "Workspace (Read-Only)",
+    "fot_WorkspaceReadOnly": "Workspace Data",
     "fot_Folder": "Folder",
 }
