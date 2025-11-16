@@ -121,7 +121,7 @@ const selectWorkspace = function (node, workspace_codename) {
     console.log("(", node.id, ") will select workspace: ", workspace_codename);
     console.log("(", node.id, ")   - node: ", node);
 
-    const widget = node.widgets[0];
+    const widget = node.widgets.find(w => w.name === WIDGET_NAME_WORKSPACE);
     const workspaces = widget.options.values;
     if (workspaces.includes(workspace_codename)) {
         widget.value = workspace_codename;
@@ -211,7 +211,7 @@ const selectFolder = function (node, folder) {
     // console.log("(", node.id, ") will select folder: ", folder);
     // console.log("(", node.id, ")   - node: ", node);
 
-    const widget = node.widgets[0];
+    const widget = node.widgets.find(w => w.name === WIDGET_NAME_FOLDER);
     const folders = widget.options.values;
     if (folders.includes(folder)) {
         widget.value = folder;
@@ -417,26 +417,27 @@ app.registerExtension({
         const onNodeCreated = nodeType.prototype.onNodeCreated;
         // const onExecuted = nodeType.prototype.onExecuted;
         // const onConfigure = nodeType.prototype.onConfigure;
-
-        nodeType.prototype.onNodeCreated = function () {
-            const node = this;
-            this.addCustomWidget({
-                name: "+ Add Workspace",
-                title: "+ Add Workspace",
-                type: "button",
-                callback: () => {
-                    // this.showAddFolderDialog();
-                    const workspace_codename = prompt("New workspace:");
-                    addWorkspace(node, workspace_codename);
-                    selectWorkspace(node, workspace_codename);
-                },
-            });
-            if (onNodeCreated) onNodeCreated.apply(this, arguments);
-        };
+        if (nodeSpecs.name === "fot_Workspace") {
+            nodeType.prototype.onNodeCreated = function () {
+                const node = this;
+                this.addCustomWidget({
+                    name: "+ Add Workspace",
+                    title: "+ Add Workspace",
+                    type: "button",
+                    callback: () => {
+                        // this.showAddFolderDialog();
+                        const workspace_codename = prompt("New workspace:");
+                        addWorkspace(node, workspace_codename);
+                        selectWorkspace(node, workspace_codename);
+                    },
+                });
+                if (onNodeCreated) onNodeCreated.apply(this, arguments);
+            };
+        }
 
         nodeType.prototype.onConfigure = async function (node) {
             // ensure currently configured value is in list (in case of offline dir clean-up)
-            const widget = this.widgets[0];
+            const widget = node.widgets.find(w => w.name === WIDGET_NAME_WORKSPACE);
             const currentValue = widget.value;
             const workspaces = widget.options.values;
             if (workspaces.includes(currentValue)) {
