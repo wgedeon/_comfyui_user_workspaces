@@ -162,7 +162,7 @@ const addFolder = async function (node, workspace_codename, folder_name) {
 const refreshFolders = async function (node) {
     // console.log("updateFolders, node: ", node);
     // Find the folder widget and change it to dropdown
-    const folderWidget = node.widgets.find(w => w.name === "folder");
+    const folderWidget = node.widgets.find(w => w.name === WIDGET_NAME_FOLDER);
     if (folderWidget && folderWidget.type !== "combo") {
         // Convert string input to dropdown
         folderWidget.type = "combo";

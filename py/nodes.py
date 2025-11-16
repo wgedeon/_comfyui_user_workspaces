@@ -44,12 +44,12 @@ class fot_Workspace:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "codename": (get_workspace_list(), {"default": WORKSPACE_DEFAULT},),
+                "codename": (get_workspace_list(), {"default": WORKSPACE_DEFAULT}),
+                "width": ("INT", {"default": 640}),
+                "height": ("INT", {"default": 480}),
             },
             "optional": {
-                "codename_override": ("STRING", {"forceInput": True},),
-                "width": ("INT", {"default": 640},),
-                "height": ("INT", {"default": 480},),
+                "codename_override": ("STRING", {"forceInput": True}),
             },
             "hidden": {
             }
@@ -57,7 +57,7 @@ class fot_Workspace:
 
     RETURN_TYPES = ("WORKSPACE", "STRING", "INT", "INT",)
     RETURN_NAMES = ("workspace", "codename", "width", "height",)
-    OUTPUT_IS_LIST = (False, False, False, False, True)
+    OUTPUT_IS_LIST = (False, False, False, False)
     OUTPUT_NODE = True
 
     CATEGORY = CATEGORY
@@ -100,14 +100,14 @@ class fot_Workspace:
             workspace_json_object = {
                 "codename": actual_codename,
                 "width": width,
-                "height": height,
+                "height": height
             }
             workspace_json_object_tostore = True
 
-        if not "width" in workspace_json_object or width != workspace_json_object["width"]:
+        if (not "width" in workspace_json_object) or( width != workspace_json_object["width"]):
             workspace_json_object["width"] = width
             workspace_json_object_tostore = True
-        if not "height" in workspace_json_object or height != workspace_json_object["height"]:
+        if (not "height" in workspace_json_object) or (height != workspace_json_object["height"]):
             workspace_json_object["height"] = height
             workspace_json_object_tostore = True
 
@@ -139,8 +139,8 @@ class fot_WorkspaceReadOnly:
             },
             "optional": {
                 "workspace": ("WORKSPACE",),
-                "codename": (get_workspace_list(), {"default": WORKSPACE_DEFAULT},),
-                "codename_override": ("STRING", {"forceInput": True},),
+                "codename": (get_workspace_list(), {"default": WORKSPACE_DEFAULT}),
+                "codename_override": ("STRING", {"forceInput": True}),
             },
             "hidden": {
             }
