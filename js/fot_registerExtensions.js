@@ -82,7 +82,7 @@ const addWorkspace = async function (node, workspace_codename) {
             console.log("addWorkspace: will update workspaces");
             await refreshWorkspaces(node);
             console.log("addWorkspace: will select workspace: ", workspace_codename);
-            selectWorkspace(node, workspace_codename);
+            await selectWorkspace(node, workspace_codename);
         }
         else {
             console.error("Server error:", data.error);
@@ -105,7 +105,7 @@ const refreshWorkspaces = async function (node) {
             const currentValue = widget.value;
             widget.options.values = data.workspaces.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
             // console.log("(", node.id, ") got folders: ", data.folders)
-            selectWorkspace(node, currentValue);
+            await selectWorkspace(node, currentValue);
         }
         else {
             console.error("Server error:", data.error);
@@ -117,9 +117,9 @@ const refreshWorkspaces = async function (node) {
 
 }
 
-const selectWorkspace = function (node, workspace_codename) {
-    console.log("(", node.id, ") will select workspace: ", workspace_codename);
-    console.log("(", node.id, ")   - node: ", node);
+const selectWorkspace = async function (node, workspace_codename) {
+    // console.log("(", node.id, ") will select workspace: ", workspace_codename);
+    // console.log("(", node.id, ")   - node: ", node);
 
     const widget = node.widgets.find(w => w.name === WIDGET_NAME_WORKSPACE);
     const workspaces = widget.options.values;
@@ -132,7 +132,55 @@ const selectWorkspace = function (node, workspace_codename) {
     else {
         widget.value = "default";
     }
+    node.workspace_codename = widget.value;
+
+    refreshWorkspaceData(node);
+
     node.setDirtyCanvas(true, false);
+}
+
+const refreshWorkspaceData = async function (node) {
+    const workspace_codename = node.workspace_codename;
+
+    if (!workspace_codename) {
+        console.log("==> workspace_codename = ", workspace_codename);
+    }
+
+    // load json and update node inputs
+    const url = `/comfyui_user_workspaces/get_workspace?workspace_codename=${encodeURIComponent(workspace_codename)}`
+    const response = await fetch(url);
+    const response_json = await response.json();
+    let workspace = response_json.workspace;
+
+    let hashstr = "";
+    if (workspace) {
+        workspace = Object.keys(workspace).sort().reduce((obj, key) => {
+            obj[key] = workspace[key];
+            return obj;
+        }, {});
+        const str = JSON.stringify(workspace);
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        hashstr = hash.toString(16);
+    }
+
+    let w;
+    w = node.widgets.find(w => w.name === "workspace_hash");
+    w.value = hashstr;
+
+    if (workspace && node.type === "fot_Workspace") {
+        w = node.widgets.find(w => w.name === "width");
+        w.value = workspace["width"];
+
+        w = node.widgets.find(w => w.name === "height");
+        w.value = workspace["height"];
+
+        node.setDirtyCanvas(true, false);
+    }
 }
 
 const addFolder = async function (node, workspace_codename, folder_name) {
@@ -229,35 +277,34 @@ const setup_node = async function (node) {
     if (node.type === "fot_Workspace" || node.type === "fot_WorkspaceReadOnly") {
         if (node.widgets) {
             for (const widget of node.widgets) {
-                if (widget.callback) {
-                    const original_widget_callback = widget.callback;
-                    widget.callback = async function (value) {
-                        let original_widget_callback_result;
-                        if (original_widget_callback) {
-                            original_widget_callback_result = original_widget_callback.apply(this, arguments);
-                        }
+                if (!widget.callback) continue;
+                const original_widget_callback = widget.callback;
+                const name = widget.name;
+                switch (name) {
+                    case "codename":
+                        widget.callback = async function (value) {
+                            let original_widget_callback_result;
+                            if (original_widget_callback) {
+                                original_widget_callback_result = original_widget_callback.apply(this, arguments);
+                            }
 
-                        node.workspace_codename = value;
-                        console.log("(", node.id, ") callback node.workspace_codename: ", node.workspace_codename);
-                        // console.log("   =  node                   : ", node);
+                            console.log("(", node.id, ") callback node.workspace_codename: ", value);
+                            node.workspace_codename = value;
 
-                        // find downstream workspace consumers and trigger their refreshFolders
+                            refreshWorkspaceData(node);
 
-                        const fullNode = app.graph.getNodeById(node.id);
-                        const downstreams = await findDownstreamNodes(fullNode);
+                            // find downstream workspace consumers and trigger their refreshFolders
+                            const fullNode = app.graph.getNodeById(node.id);
+                            const downstreams = await findDownstreamNodes(fullNode);
 
-                        // console.log("   = got downstream nodes = ", downstreams);
-                        for (var downstream of downstreams) {
-                            console.log("(", node.id, ") updating downstream node : ", downstream);
-                            await refreshFolders(downstream);
-                        }
+                            for (var downstream of downstreams) {
+                                await refreshFolders(downstream);
+                            }
 
-                        return original_widget_callback_result;
-                    };
+                            return original_widget_callback_result;
+                        };
+                        break;
                 }
-                // else {
-                //     console.log("----> no widget.callback! ", widget);
-                // }
             }
         }
         // initialize workspace_codename
@@ -415,32 +462,49 @@ app.registerExtension({
         if (!nodeSpecs.name.startsWith("fot_Workspace")) return;
 
         const onNodeCreated = nodeType.prototype.onNodeCreated;
-        // const onExecuted = nodeType.prototype.onExecuted;
-        // const onConfigure = nodeType.prototype.onConfigure;
-        if (nodeSpecs.name === "fot_Workspace") {
-            nodeType.prototype.onNodeCreated = function () {
-                const node = this;
+        const onExecuted = nodeType.prototype.onExecuted;
+        const onConfigure = nodeType.prototype.onConfigure;
+
+        nodeType.prototype.onNodeCreated = function () {
+            if (onNodeCreated) onNodeCreated.apply(this, arguments);
+            const node = this;
+
+            if (nodeSpecs.name === "fot_Workspace") {
                 this.addCustomWidget({
                     name: "+ Add Workspace",
                     title: "+ Add Workspace",
                     type: "button",
-                    callback: () => {
+                    callback: async () => {
                         // this.showAddFolderDialog();
                         const workspace_codename = prompt("New workspace:");
                         addWorkspace(node, workspace_codename);
-                        selectWorkspace(node, workspace_codename);
+                        await selectWorkspace(node, workspace_codename);
                     },
                 });
-                if (onNodeCreated) onNodeCreated.apply(this, arguments);
-            };
-        }
+            }
+            this.addCustomWidget({
+                name: "⟳ Refresh Workspaces",
+                title: "⟳ Refresh Workspaces",
+                type: "button",
+                callback: async () => {
+                    await refreshWorkspaces(node);
+                },
+            });
+
+        };
 
         nodeType.prototype.onConfigure = async function (node) {
+            if (onConfigure) onConfigure.apply(this, arguments);
             // console.log("this = ", this);
             // console.log("arguments = ", arguments);
 
+            const w = this.widgets.find(w => w.name === "workspace_hash");
+            if (w) w.hidden = true;
+
             // ensure currently configured value is in list (in case of offline dir clean-up)
             const widget = this.widgets.find(w => w.name === WIDGET_NAME_WORKSPACE);
+            if (!widget) return;
+
             const currentValue = widget.value;
             const workspaces = widget.options.values;
             if (workspaces.includes(currentValue)) {
@@ -452,7 +516,20 @@ app.registerExtension({
             else {
                 widget.value = "default";
             }
+            this.workspace_codename = widget.value;
+
+            refreshWorkspaceData(this);
+
             this.setDirtyCanvas(true, false);
+        };
+
+        nodeType.prototype.onExecuted = async function (result) {
+            console.log("fot_Workspace* onExecuted: ", this.id, result);
+
+            console.log("(", nodeSpecs.id, ") onExecuted: will update folders");
+            await refreshFolders(this);
+
+            onExecuted?.apply(this, arguments);
         };
     }
 

@@ -11,7 +11,7 @@ CATEGORY = "Feller of Trees/Workspaces"
 
 WORKSPACE_DEFAULT = "default"
 
-def get_workspace_list() -> list[str]:
+def get_wksp_list() -> list[str]:
 
     home_dir = folder_paths.get_output_directory() # get_user_directory()
     # print(f" - user_dir = {user_dir}")
@@ -44,12 +44,13 @@ class fot_Workspace:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "codename": (get_workspace_list(), {"default": WORKSPACE_DEFAULT}),
+                "codename": (get_wksp_list(), {"default": WORKSPACE_DEFAULT}),
                 "width": ("INT", {"default": 640}),
                 "height": ("INT", {"default": 480}),
             },
             "optional": {
                 "codename_override": ("STRING", {"forceInput": True}),
+                "workspace_hash": ("STRING", {"default": "", "forceInput": False}),
             },
             "hidden": {
             }
@@ -143,9 +144,10 @@ class fot_WorkspaceReadOnly:
             "required": {
             },
             "optional": {
-                "workspace": ("WORKSPACE",),
-                "codename": (get_workspace_list(), {"default": WORKSPACE_DEFAULT}),
+                "workspace": ("WORKSPACE"),
+                "codename": (get_wksp_list(), {"default": WORKSPACE_DEFAULT}),
                 "codename_override": ("STRING", {"forceInput": True}),
+                "workspace_hash": ("STRING", {"default": "", "forceInput": False}),
             },
             "hidden": {
             }
@@ -162,8 +164,9 @@ class fot_WorkspaceReadOnly:
     CATEGORY = CATEGORY
 
     FUNCTION = "expose_data"
-    def expose_data(self, workspace=None, codename=None, codename_override=None, **kwargs):
-        # print("fot_Workspace exposing data")
+    def expose_data(self, workspace=None, codename=None, codename_override=None, workspace_hash=None, **kwargs):
+        print(f"fot_Workspace* exposing data, workspace={workspace}")
+        print(f"fot_Workspace*: workspace_hash={workspace_hash}")
 
         if workspace is None:
             # print(f" - codename = {codename}")
@@ -189,16 +192,19 @@ class fot_WorkspaceReadOnly:
             if os.path.exists(workspace_json_filename):
                 with open(workspace_json_filename, 'r') as f:
                     workspace_json_object = json.load(f)
-                # print(f" - Loaded existing workspace.json with {len(workspace_json_object)} entries")
         else:
             workspace_json_object = workspace
 
-        return (
-            workspace_json_object,
-            workspace_json_object["codename"],
-            workspace_json_object["width"],
-            workspace_json_object["height"],
-        )
+        return {
+            "ui": {
+                "workspace": (workspace_json_object,) },
+                "result": (
+                    workspace_json_object,
+                    workspace_json_object["codename"],
+                    workspace_json_object["width"],
+                    workspace_json_object["height"],
+                )
+            }
 
 # #############################################################################
 class fot_Folder:
@@ -208,7 +214,6 @@ class fot_Folder:
 
     @classmethod
     def INPUT_TYPES(cls):
-        print(f"fot_Folder, cls = {cls}")
         inputs = {
             "required": {
                 "workspace": ("WORKSPACE",),
