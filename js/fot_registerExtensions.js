@@ -2,7 +2,7 @@ import { app } from "../../scripts/app.js";
 
 const NODE_TYPES_MINE = ["fot_Workspace", "fot_WorkspaceReadOnly", "fot_Folder"]
 const WIDGET_NAME_FOLDER = "folder";
-const WIDGET_NAME_WORKSPACE = "codename";
+const WIDGET_NAME_CODENAME = "codename";
 
 let common_extension = null;
 
@@ -45,7 +45,6 @@ const findUpstreamWorkspace = async function (node) {
 };
 
 const findDownstreamNodes = async function (node) {
-    console.log("findDownstreamNodes:");
     const slotIndex = node.findOutputSlot("workspace");
     if (slotIndex == -1) {
         return [];
@@ -101,7 +100,7 @@ const refreshWorkspaces = async function (node) {
         const data = await response.json();
 
         if (response.ok) {
-            const widget = node.widgets.find(w => w.name === WIDGET_NAME_WORKSPACE);
+            const widget = node.widgets.find(w => w.name === WIDGET_NAME_CODENAME);
             const currentValue = widget.value;
             widget.options.values = data.workspaces.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
             // console.log("(", node.id, ") got folders: ", data.folders)
@@ -121,7 +120,7 @@ const selectWorkspace = async function (node, workspace_codename) {
     // console.log("(", node.id, ") will select workspace: ", workspace_codename);
     // console.log("(", node.id, ")   - node: ", node);
 
-    const widget = node.widgets.find(w => w.name === WIDGET_NAME_WORKSPACE);
+    const widget = node.widgets.find(w => w.name === WIDGET_NAME_CODENAME);
     const workspaces = widget.options.values;
     if (workspaces.includes(workspace_codename)) {
         widget.value = workspace_codename;
@@ -244,6 +243,7 @@ const refreshFolders = async function (node) {
             widget.options.values = data.folders.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
             // console.log("(", node.id, ") got folders: ", data.folders)
             selectFolder(node, currentValue);
+            node.setDirtyCanvas(true, false);
         }
         else {
             console.error("Server error:", data.error);
@@ -275,38 +275,32 @@ const selectFolder = function (node, folder) {
 
 const setup_node = async function (node) {
     if (node.type === "fot_Workspace" || node.type === "fot_WorkspaceReadOnly") {
-        if (node.widgets) {
-            for (const widget of node.widgets) {
-                if (!widget.callback) continue;
-                const original_widget_callback = widget.callback;
-                const name = widget.name;
-                switch (name) {
-                    case "codename":
-                        widget.callback = async function (value) {
-                            let original_widget_callback_result;
-                            if (original_widget_callback) {
-                                original_widget_callback_result = original_widget_callback.apply(this, arguments);
-                            }
+        if (!node.widgets) return;
 
-                            console.log("(", node.id, ") callback node.workspace_codename: ", value);
-                            node.workspace_codename = value;
+        const codename_widget = node.widgets.find(w => w.name === WIDGET_NAME_CODENAME);
+        if (!codename_widget.callback) return;
 
-                            refreshWorkspaceData(node);
-
-                            // find downstream workspace consumers and trigger their refreshFolders
-                            const fullNode = app.graph.getNodeById(node.id);
-                            const downstreams = await findDownstreamNodes(fullNode);
-
-                            for (var downstream of downstreams) {
-                                await refreshFolders(downstream);
-                            }
-
-                            return original_widget_callback_result;
-                        };
-                        break;
-                }
+        const original_widget_callback = codename_widget.callback;
+        codename_widget.callback = async function (value) {
+            let original_widget_callback_result;
+            if (original_widget_callback) {
+                original_widget_callback_result = original_widget_callback.apply(this, arguments);
             }
-        }
+            node.workspace_codename = value;
+
+            refreshWorkspaceData(node);
+
+            // find downstream workspace consumers and trigger their refreshFolders
+            const fullNode = app.graph.getNodeById(node.id);
+            const downstreams = await findDownstreamNodes(fullNode);
+
+            for (var downstream of downstreams) {
+                await refreshFolders(downstream);
+            }
+
+            return original_widget_callback_result;
+        };
+
         // initialize workspace_codename
         // console.log("(", node.id, ") setup_node workspace node = ", node);
         if (node.widgets_values && node.widgets_values.length > 0) {
@@ -316,8 +310,24 @@ const setup_node = async function (node) {
     }
 
     if (node.type === "fot_Folder") {
-        // console.log("(", node.id, ") setup_node (fot_Folder) will update folders");
         await refreshFolders(node);
+
+        if (!node.widgets) return;
+
+        const folder_widget = node.widgets.find(w => w.name === WIDGET_NAME_FOLDER);
+        if (!folder_widget.callback) return;
+        
+        const original_widget_callback = folder_widget.callback;
+        folder_widget.callback = async function (value) {
+            let original_widget_callback_result;
+            if (original_widget_callback) {
+                original_widget_callback_result = original_widget_callback.apply(this, arguments);
+            }
+            node.setDirtyCanvas(true, false);
+
+            return original_widget_callback_result;
+        };
+
     }
 };
 
@@ -415,7 +425,6 @@ app.registerExtension({
                 title: "⟳ Refresh",
                 type: "button",
                 callback: async () => {
-                    console.log("refresh: will update folders");
                     await refreshFolders(node);
                 },
             });
@@ -502,7 +511,7 @@ app.registerExtension({
             if (w) w.hidden = true;
 
             // ensure currently configured value is in list (in case of offline dir clean-up)
-            const widget = this.widgets.find(w => w.name === WIDGET_NAME_WORKSPACE);
+            const widget = this.widgets.find(w => w.name === WIDGET_NAME_CODENAME);
             if (!widget) return;
 
             const currentValue = widget.value;
@@ -524,9 +533,9 @@ app.registerExtension({
         };
 
         nodeType.prototype.onExecuted = async function (result) {
-            console.log("fot_Workspace* onExecuted: ", this.id, result);
+            // console.log("fot_Workspace* onExecuted: ", this.id, result);
 
-            console.log("(", nodeSpecs.id, ") onExecuted: will update folders");
+            // console.log("(", nodeSpecs.id, ") onExecuted: will update folders");
             await refreshFolders(this);
 
             onExecuted?.apply(this, arguments);
