@@ -140,6 +140,11 @@ class fot_WorkspaceReadOnly:
 
     @classmethod
     def INPUT_TYPES(cls):
+        ui_features = {
+            "is_workspace_consumer": {},
+            "is_workspace_producer": {}
+        }
+        ui_features_string = json.dumps(ui_features)
         inputs = {
             "required": {
             },
@@ -150,7 +155,7 @@ class fot_WorkspaceReadOnly:
                 "workspace_hash": ("STRING", {"default": "", "forceInput": False}),
             },
             "hidden": {
-                "ui_features": ("STRING", {"default": "[\"workspace_consumer\",\"workspace_producer\"]"}),
+                "ui_features": ("STRING", {"default": ui_features_string}),
             }
         }
         # for i in range(1, 3):
@@ -215,6 +220,11 @@ class fot_Folder:
 
     @classmethod
     def INPUT_TYPES(cls):
+        ui_features = {
+            "is_workspace_consumer": {},
+            "is_workspace_producer": {}
+        }
+        ui_features_string = json.dumps(ui_features)
         inputs = {
             "required": {
                 "workspace": ("WORKSPACE",),
@@ -223,7 +233,7 @@ class fot_Folder:
             "optional": {
             },
             "hidden": {
-                "ui_features": ("STRING", {"default": "[\"workspace_consumer\",\"workspace_producer\"]"}),
+                "ui_features": ("STRING", {"default": ui_features_string}),
             }
         }
         return inputs
