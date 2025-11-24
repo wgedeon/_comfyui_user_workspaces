@@ -7,7 +7,7 @@ export const is_workspace_producer = function (app, node_type) {
 }
 
 export const findUpstreamWorkspace = async function (app, node) {
-    const DEBUG = true;
+    const DEBUG = false;
     if (DEBUG) console.log("[", node.id, "] findUpstreamWorkspace:");
     if (DEBUG) console.log("[", node.id, "]   - node: ", node);
     

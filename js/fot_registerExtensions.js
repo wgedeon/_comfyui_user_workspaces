@@ -396,7 +396,7 @@ app.registerExtension({
 
     async beforeRegisterNodeDef(nodeType, nodeSpecs, app) {
         if (!is_workspace_consumer(app, nodeSpecs.name)) return;
-        const DEBUG = true;
+        const DEBUG = false;
         if (DEBUG) console.log("register extension ", this.name, "for", nodeSpecs.name);
 
         // this.onWorkspaceUpdated
@@ -482,7 +482,7 @@ app.registerExtension({
 
     async beforeRegisterNodeDef(nodeType, nodeSpecs, app) {
         if (nodeSpecs.name !== "fot_Folder") return;
-        const DEBUG = true;
+        const DEBUG = false;
         if (DEBUG) console.log("register extension ", this.name);
 
         nodeSpecs.input.required.folder = [[]]
@@ -564,7 +564,7 @@ app.registerExtension({
 
     async beforeRegisterNodeDef(nodeType, nodeSpecs, app) {
         if (!nodeSpecs.name.startsWith("fot_Workspace")) return;
-        const DEBUG = true;
+        const DEBUG = false;
         if (DEBUG) console.log("register extension ", this.name, "for", nodeSpecs.name);
 
         const onNodeCreated = nodeType.prototype.onNodeCreated;
