@@ -1,7 +1,7 @@
 [project]
 name = "comfyui_user_workspaces"
 description = "Provides a structured model and helper nodes for organizing output files in ComfyUI."
-version = "1.0.0"
+version = "0.1.0"
 license = { file = "LICENSE" }
 dependencies = ["python_path"]
 

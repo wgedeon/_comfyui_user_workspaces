@@ -28,7 +28,7 @@ git clone https://github.com/wgedeon/comfyui_user_workspaces.git
 
 ## 🛠️ How to Use
 
-coming soon: [🎥 Watch Video Tutorial on YouTube](link)
+[🎥 Watch Video Tutorial on YouTube](https://youtu.be/SEUiAkAqApI)
 
 ![Main Nodes](docs/screenshot.png)
 
