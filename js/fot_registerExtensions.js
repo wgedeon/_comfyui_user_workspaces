@@ -238,6 +238,7 @@ const setup_node = async function (app, node) {
             if (codename_widget_callback) {
                 codename_widget_callback_result = codename_widget_callback.apply(this, arguments);
             }
+            console.log("workspace selected: ", value);
             const workspace_codename = value;
 
             node.workspace_codename = workspace_codename;
@@ -309,7 +310,7 @@ app.registerExtension({
     name: "comyui_fot_common.nodes_ui_features",
 
     setup_node_ui_features(nodeSpecs, app) {
-        const DEBUG = true;
+        const DEBUG = false;
         if (DEBUG) console.log("setup_node_ui_features");
 
         if (nodeSpecs.input === undefined || nodeSpecs.input === null) return;
@@ -398,6 +399,8 @@ app.registerExtension({
         const DEBUG = true;
         if (DEBUG) console.log("register extension ", this.name, "for", nodeSpecs.name);
 
+        // this.onWorkspaceUpdated
+
         const onConnectInput = nodeType.prototype.onConnectInput;
         nodeType.prototype.onConnectInput = function(slot_index, link_type, link_info, output_info) {            
             const orig_return = onConnectInput?.apply(this, arguments);
@@ -479,7 +482,7 @@ app.registerExtension({
 
     async beforeRegisterNodeDef(nodeType, nodeSpecs, app) {
         if (nodeSpecs.name !== "fot_Folder") return;
-        const DEBUG = false;
+        const DEBUG = true;
         if (DEBUG) console.log("register extension ", this.name);
 
         nodeSpecs.input.required.folder = [[]]
@@ -489,18 +492,23 @@ app.registerExtension({
         const onConfigure = nodeType.prototype.onConfigure;
 
         nodeType.prototype.onNodeCreated = function () {
-            // console.log("onNodeCreated: ", this.id, this);
+            if (DEBUG) console.log("onNodeCreated: ", this.id, this);
             const node = this;
             // Find the folder widget and change it to dropdown
             const folderWidget = this.widgets.find(w => w.name === WIDGET_NAME_FOLDER);
             if (folderWidget && folderWidget.type !== "combo") {
-                // console.log(" - changing to combo list", folderWidget);
+                if (DEBUG) console.log(" - changing to combo list", folderWidget);
                 folderWidget.type = "combo";
                 // folderWidget.options.values = []; // Will be populated dynamically on configure
                 folderWidget.options.values = ["Loading..."];
                 folderWidget.value = "Loading...";
                 this.inputs[1].type = "COMBO";
-                // console.log(" - changed to combo list", folderWidget);
+            }
+
+            if (DEBUG) console.log("(", this.id, " : ",this.type,") onConfigure: will set node.onWorkspaceUpdated");
+            // const fullNode = app.graph.getNodeById(node.id);
+            this.onWorkspaceUpdated = async (node) => {
+                await refreshFolders(app, node);
             }
 
             this.addCustomWidget({
@@ -528,25 +536,20 @@ app.registerExtension({
             if (onNodeCreated) onNodeCreated.apply(this, arguments);
         };
 
-        nodeType.prototype.onConfigure = async function (node) {
-            // console.log("onConfigure: ", this.id);
-            // console.log(" - this: ", this);
-            // console.log(" - node: ", node);
+        // nodeType.prototype.onConfigure = async function (node) {
+        //     if (DEBUG) console.log("onConfigure: ", this.id);
+        //     // console.log(" - this: ", this);
+        //     // console.log(" - node: ", node);
 
-console.log("(", node.id, " : ",node.type,") onConfigure: will set node.onWorkspaceUpdated");
-            // const fullNode = app.graph.getNodeById(node.id);
-            node.onWorkspaceUpdated = async (node) => {
-                await refreshFolders(app, this);
-            }
 
-            onConfigure?.apply(this, arguments);
-        }
+        //     onConfigure?.apply(this, arguments);
+        // };
 
         nodeType.prototype.onExecuted = async function (result) {
             // console.log("fot_Folder:onExecuted: ", this.id, result);
 
-            console.log("(", this.id, ") onExecuted: will update folders");
-            await refreshFolders(app, this);
+            // if (DEBUG) console.log("(", this.id, ") onExecuted: will update folders");
+            // await refreshFolders(app, this);
 
             onExecuted?.apply(this, arguments);
         };
