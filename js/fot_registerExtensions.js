@@ -169,7 +169,7 @@ const addFolder = async function (app, node, workspace_codename, folder_name) {
 };
 
 const refreshFolders = async function (app, node) {
-    console.log("refreshFolders, node: ", node.id);
+    // console.log("refreshFolders, node: ", node.id);
     // Find the folder widget and change it to dropdown
     const folderWidget = node.widgets.find(w => w.name === WIDGET_NAME_FOLDER);
     if (folderWidget && folderWidget.type !== "combo") {
