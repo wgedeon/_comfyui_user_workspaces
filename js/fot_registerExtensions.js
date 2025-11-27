@@ -73,7 +73,7 @@ const selectWorkspace = async function (node, workspace_codename) {
         widget.value = "default";
     }
     node.workspace_codename = widget.value;
-    console.log("(", node.id, ")   - node.workspace_codename: ", node.workspace_codename);
+    console.log("(", node.id, ",",node.type,")   - node.workspace_codename: ", node.workspace_codename);
 
     refreshWorkspaceData(node);
 
@@ -130,15 +130,15 @@ const refreshDownstreamConsumers = async function (app, node) {
     const downstreams = await findDownstreamNodes(app, fullNode);
 
     for (var downstream of downstreams) {
-        console.log("workspace consumer ", downstream.type, "?", is_workspace_consumer(app, downstream.type));
+        // console.log("workspace consumer ", downstream.type, "?", is_workspace_consumer(app, downstream.type));
         if (is_workspace_consumer(app, downstream.type)) {
             downstream.workspace_codename = node.workspace_codename;
-            if (downstream.onWorkspaceUpdated) {
-                console.log("refresh workspace consumer: ", downstream.type);
-                await downstream.onWorkspaceUpdated(downstream);
+            if (downstream.onWorkspaceCodenameUpdated) {
+console.log("refresh workspace consumer: ", downstream.type);
+                await downstream.onWorkspaceCodenameUpdated(downstream);
             }
             else {
-                console.log("no onWorkspaceUpdated: ", downstream);
+                console.log("no onWorkspaceCodenameUpdated: ", downstream);
             }
         }
     }
@@ -264,6 +264,7 @@ const setup_node = async function (app, node) {
             node.workspace_codename = workspace_codename;
 
             refreshWorkspaceData(node);
+            console.log("(",node.type,") workspace selected, refreshing downstream consumers");
             refreshDownstreamConsumers(app, node);
 
             node.setDirtyCanvas(true, false);
@@ -278,6 +279,7 @@ const setup_node = async function (app, node) {
             // console.log("(", node.id, ") setup_node workspace_codename = ", node.workspace_codename);
         }
 
+        console.log("(",node.type,") node setup, refreshing downstream consumers");
         refreshDownstreamConsumers(app, node);
     }
 
@@ -311,13 +313,13 @@ app.registerExtension({
 
     setup_node_ui_features(nodeSpecs, app) {
         const DEBUG = false;
-        if (DEBUG) console.log("setup_node_ui_features");
 
         if (nodeSpecs.input === undefined || nodeSpecs.input === null) return;
         if (nodeSpecs.input.hidden === undefined || nodeSpecs.input.hidden === null) return;
         const ui_features = nodeSpecs.input.hidden.ui_features;
         if (nodeSpecs.input === undefined || nodeSpecs.input === null) return;
         if (! ui_features) return;
+        if (DEBUG) console.log("setup_node_ui_features: ", nodeSpecs.name);
         const ui_features_settings = ui_features[1];
         if (ui_features_settings === undefined || ui_features_settings === null) return;
         const list_str = ui_features_settings['default'];
@@ -328,67 +330,64 @@ app.registerExtension({
         if (app.ui_features === undefined) {
             app.ui_features = {};
         }
-        app.ui_features[nodeSpecs.name] = list
+        app.ui_features[nodeSpecs.name] = list;
+        // nodeSpecs.prototype.ui_features = list;
+
+        return list;
     },
+
+    // async loadedGraphNode(node, queue) {
+    //     if (!node.type.startsWith("fot_")) return; // tmp
+    //     console.log("== loadedGraphNode ==> ", node.type);
+
+    //     console.log(" - node :", node);
+
+    // },
 
     async beforeRegisterNodeDef(nodeType, nodeSpecs, app) {
         const DEBUG = false;
-        this.setup_node_ui_features(nodeSpecs, app);
+        const list = this.setup_node_ui_features(nodeSpecs, app);
+        if (list === undefined) return;
+        if (DEBUG) console.log("== beforeRegisterNodeDef ==> ", nodeSpecs.name, " = ", list);
 
-        if (nodes_ui_features_graph_setup === false) {
-            nodes_ui_features_graph_setup = true;
-            const original_app_graph_configure = app.graph.configure;
-            app.graph.configure = function (graph) {
-                let original_app_graph_configure_result;
-                // if (DEBUG) console.log("##### app.graph.configure: ", arguments);
-                if (original_app_graph_configure) {
-                    original_app_graph_configure_result = original_app_graph_configure.apply(this, arguments);
-                }
+        // if (nodes_ui_features_graph_setup === false) {
+        //     nodes_ui_features_graph_setup = true;
+        //     const original_app_graph_configure = app.graph.configure;
+        //     app.graph.configure = function (graph) {
+        //         let original_app_graph_configure_result;
+        //         // if (DEBUG) console.log("##### app.graph.configure: ", arguments);
+        //         if (original_app_graph_configure) {
+        //             original_app_graph_configure_result = original_app_graph_configure.apply(this, arguments);
+        //         }
 
-                // const original_onNodeAdded = this.onNodeAdded;
-                // this.onNodeAdded = function (node) {
-                //     let original_onNodeAdded_result;
-                //     if (original_onNodeAdded) {
-                //         original_onNodeAdded_result = original_onNodeAdded.apply(this, arguments);
-                //     }
-                //     if (DEBUG) console.log("====> graph.onNodeAdded");
-                //     if (DEBUG) console.log("  ==  node = ", node.id, "=", node.type);
-                //     const ui_features = app.ui_features[node.type];
-                //     if (ui_features === undefined) return original_onNodeAdded_result;
-                //     if (DEBUG) console.log("====> ", node.id, ", ", node.type, "=", ui_features);
+        //         // const original_onNodeAdded = this.onNodeAdded;
+        //         // this.onNodeAdded = function (node) {
+        //         //     let original_onNodeAdded_result;
+        //         //     if (original_onNodeAdded) {
+        //         //         original_onNodeAdded_result = original_onNodeAdded.apply(this, arguments);
+        //         //     }
+        //         //     if (DEBUG) console.log("====> graph.onNodeAdded");
+        //         //     if (DEBUG) console.log("  ==  node = ", node.id, "=", node.type);
+        //         //     const ui_features = app.ui_features[node.type];
+        //         //     if (ui_features === undefined) return original_onNodeAdded_result;
+        //         //     if (DEBUG) console.log("====> ", node.id, ", ", node.type, "=", ui_features);
 
-                //     return original_onNodeAdded_result;
-                // };
+        //         //     return original_onNodeAdded_result;
+        //         // };
 
-                if (DEBUG) console.log("##### checking existing nodes");
-                for (var i = 0, l = graph.nodes.length; i < l; i++) {
-                    var node = graph.nodes[i];
-                    const ui_features = app.ui_features[node.type];
-                    if (ui_features === undefined) continue;
-                    if (DEBUG) console.log("====> ", node.id, ", ", node.type, "=", ui_features);
-                }
+        //         if (DEBUG) console.log("##### checking existing nodes");
+        //         for (var i = 0, l = graph.nodes.length; i < l; i++) {
+        //             var node = graph.nodes[i];
+        //             const ui_features = app.ui_features[node.type];
+        //             if (ui_features === undefined) continue;
+        //             if (DEBUG) console.log("====> ", node.id, ", ", node.type, "=", ui_features);
+        //         }
 
-                return original_app_graph_configure_result;
-            };
-        }
+        //         return original_app_graph_configure_result;
+        //     };
+        // }
     }
 });
-
-// // comyui_fot_common.workspace_chainlink
-// app.registerExtension({
-//     name: "comyui_fot_common.workspace_chainlink",
-
-//     async beforeRegisterNodeDef(nodeType, nodeSpecs, app) {
-//         if (!is_workspace_consumer(app, nodeSpecs.name)
-//         ||  !is_workspace_producer(app, nodeSpecs.name)
-//         ) return;
-//         const DEBUG = false;
-//         // TODO validate node input and output requirements
-//         // the workspace_chainlink feature requires:
-//         // - the node must have one visible input and one visible output named "workspace"
-//         if (DEBUG) console.log("register extension ", this.name, "for", nodeSpecs.name);
-//     }
-// });
 
 // comyui_fot_common.is_workspace_consumer
 app.registerExtension({
@@ -398,8 +397,6 @@ app.registerExtension({
         if (!is_workspace_consumer(app, nodeSpecs.name)) return;
         const DEBUG = false;
         if (DEBUG) console.log("register extension ", this.name, "for", nodeSpecs.name);
-
-        // this.onWorkspaceUpdated
 
         const onConnectInput = nodeType.prototype.onConnectInput;
         nodeType.prototype.onConnectInput = function(slot_index, link_type, link_info, output_info) {            
@@ -482,35 +479,22 @@ app.registerExtension({
 
     async beforeRegisterNodeDef(nodeType, nodeSpecs, app) {
         if (nodeSpecs.name !== "fot_Folder") return;
-        const DEBUG = false;
+        const DEBUG = true;
         if (DEBUG) console.log("register extension ", this.name);
 
         nodeSpecs.input.required.folder = [[]]
 
-        const onNodeCreated = nodeType.prototype.onNodeCreated;
-        const onExecuted = nodeType.prototype.onExecuted;
-        const onConfigure = nodeType.prototype.onConfigure;
+        const onWorkspaceCodenameUpdated = nodeType.prototype.onWorkspaceCodenameUpdated;
+        nodeType.prototype.onWorkspaceCodenameUpdated = async (node) => {
+            onWorkspaceCodenameUpdated?.apply(this, arguments);
+            if (DEBUG) console.log(node.name, "onWorkspaceCodenameUpdated refreshFolders");
+            await refreshFolders(app, node);
+        }
 
+        const onNodeCreated = nodeType.prototype.onNodeCreated;
         nodeType.prototype.onNodeCreated = function () {
             if (DEBUG) console.log("onNodeCreated: ", this.id, this);
             const node = this;
-            // Find the folder widget and change it to dropdown
-            const folderWidget = this.widgets.find(w => w.name === WIDGET_NAME_FOLDER);
-            if (folderWidget && folderWidget.type !== "combo") {
-                if (DEBUG) console.log(" - changing to combo list", folderWidget);
-                folderWidget.type = "combo";
-                // folderWidget.options.values = []; // Will be populated dynamically on configure
-                folderWidget.options.values = ["Loading..."];
-                folderWidget.value = "Loading...";
-                this.inputs[1].type = "COMBO";
-            }
-
-            if (DEBUG) console.log("(", this.id, " : ",this.type,") onConfigure: will set node.onWorkspaceUpdated");
-            // const fullNode = app.graph.getNodeById(node.id);
-            this.onWorkspaceUpdated = async (node) => {
-                if (DEBUG) console.log("(", node.id, " : ",node.type,") workspace updated will refresh folders");
-                setTimeout( () => { refreshFolders(app, node); }, 500);
-            }
 
             this.addCustomWidget({
                 name: "+ Add Folder",
@@ -537,24 +521,19 @@ app.registerExtension({
             if (onNodeCreated) onNodeCreated.apply(this, arguments);
         };
 
-        // nodeType.prototype.onConfigure = async function (node) {
-        //     if (DEBUG) console.log("onConfigure: ", this.id);
-        //     // console.log(" - this: ", this);
-        //     // console.log(" - node: ", node);
-
-
-        //     onConfigure?.apply(this, arguments);
-        // };
-
-        nodeType.prototype.onExecuted = async function (result) {
-            // console.log("fot_Folder:onExecuted: ", this.id, result);
-
-            // if (DEBUG) console.log("(", this.id, ") onExecuted: will update folders");
-            // await refreshFolders(app, this);
-
-            onExecuted?.apply(this, arguments);
+        const onConfigure = nodeType.prototype.onConfigure;
+        nodeType.prototype.onConfigure = async function (node) {
+            // Find the folder widget and change it to dropdown
+            const folderWidget = this.widgets.find(w => w.name === WIDGET_NAME_FOLDER);
+            if (folderWidget && folderWidget.type !== "combo") {
+                if (DEBUG) console.log(" - changing to combo list", folderWidget);
+                folderWidget.type = "combo";
+                // folderWidget.options.values = []; // Will be populated dynamically on configure
+                folderWidget.options.values = ["Loading..."];
+                folderWidget.value = "Loading...";
+                this.inputs[1].type = "COMBO";
+            }
         };
-
     }
 });
 

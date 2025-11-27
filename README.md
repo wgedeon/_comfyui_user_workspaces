@@ -82,13 +82,18 @@ class MyCustomNode:
 javascript:
 ```javascript
 app.registerExtension({
-    nodeType.prototype.onNodeCreated = function () {
-        this.onWorkspaceUpdated = async (node) => {
+    async beforeRegisterNodeDef(nodeType, nodeSpecs, app) {
+        // filter your extensions
+        const onWorkspaceCodenameUpdated = nodeType.prototype.onWorkspaceCodenameUpdated;
+        nodeType.prototype.onWorkspaceCodenameUpdated = async (node) => {
+            onWorkspaceCodenameUpdated?.apply(this, arguments);
             console.log("Workspace updated - refreshing UI");
             // refresh something based on the updated workspace info
         }
     }
 });
+
+
 ```
 
 ### 🎯 Best Practices
