@@ -14,16 +14,16 @@ const WIDGET_NAME_CODENAME = "codename";
 
 const addWorkspace = async function (node, workspace_codename) {
     try {
-        console.log("addWorkspace:");
-        console.log("  - workspace = ", workspace_codename);
+        if (DEBUG) console.log("addWorkspace:");
+        if (DEBUG) console.log("  - workspace = ", workspace_codename);
         const url = `/comfyui_user_workspaces/add_workspace?workspace_codename=${encodeURIComponent(workspace_codename)}`
         const response = await fetch(url, { method: 'POST' });
         const data = await response.json();
 
         if (response.ok) {
-            console.log("addWorkspace: will update workspaces");
+            if (DEBUG) console.log("addWorkspace: will update workspaces");
             await refreshWorkspaces(node);
-            console.log("addWorkspace: will select workspace: ", workspace_codename);
+            if (DEBUG) console.log("addWorkspace: will select workspace: ", workspace_codename);
             await selectWorkspace(node, workspace_codename);
         }
         else {
@@ -60,7 +60,7 @@ const refreshWorkspaces = async function (node) {
 }
 
 const selectWorkspace = async function (node, workspace_codename) {
-    console.log("(", node.id, ") will select workspace: ", workspace_codename);
+    if (DEBUG) console.log("(", node.id, ") will select workspace: ", workspace_codename);
     const widget = node.widgets.find(w => w.name === WIDGET_NAME_CODENAME);
     const workspaces = widget.options.values;
     if (workspaces.includes(workspace_codename)) {
@@ -73,7 +73,7 @@ const selectWorkspace = async function (node, workspace_codename) {
         widget.value = "default";
     }
     node.workspace_codename = widget.value;
-    console.log("(", node.id, ",",node.type,")   - node.workspace_codename: ", node.workspace_codename);
+    if (DEBUG) console.log("(", node.id, ",", node.type, ")   - node.workspace_codename: ", node.workspace_codename);
 
     refreshWorkspaceData(node);
 
@@ -83,9 +83,7 @@ const selectWorkspace = async function (node, workspace_codename) {
 const refreshWorkspaceData = async function (node) {
     const workspace_codename = node.workspace_codename;
 
-    if (!workspace_codename) {
-        console.log("==> workspace_codename = ", workspace_codename);
-    }
+    if (workspace_codename === undefined) return;
 
     // load json and update node inputs
     const url = `/comfyui_user_workspaces/get_workspace?workspace_codename=${encodeURIComponent(workspace_codename)}`
@@ -134,11 +132,11 @@ const refreshDownstreamConsumers = async function (app, node) {
         if (is_workspace_consumer(app, downstream.type)) {
             downstream.workspace_codename = node.workspace_codename;
             if (downstream.onWorkspaceCodenameUpdated) {
-console.log("refresh workspace consumer: ", downstream.type);
+                if (DEBUG) console.log("refresh workspace consumer: ", downstream.type);
                 await downstream.onWorkspaceCodenameUpdated(downstream);
             }
             else {
-                console.log("no onWorkspaceCodenameUpdated: ", downstream);
+                if (DEBUG) console.log("no onWorkspaceCodenameUpdated: ", downstream);
             }
         }
     }
@@ -146,17 +144,17 @@ console.log("refresh workspace consumer: ", downstream.type);
 
 const addFolder = async function (app, node, workspace_codename, folder_name) {
     try {
-        console.log("addFolder:");
-        console.log("  - workspace = ", workspace_codename);
-        console.log("  - folder = ", folder_name);
+        if (DEBUG) console.log("addFolder:");
+        if (DEBUG) console.log("  - workspace = ", workspace_codename);
+        if (DEBUG) console.log("  - folder = ", folder_name);
         const url = `/comfyui_user_workspaces/add_folder?workspace_codename=${encodeURIComponent(workspace_codename)}&folder_name=${folder_name}`
         const response = await fetch(url, { method: 'POST' });
         const data = await response.json();
 
         if (response.ok) {
-            console.log("addFolder: will update folders");
+            if (DEBUG) console.log("addFolder: will update folders");
             await refreshFolders(app, node);
-            console.log("addFolder: will select folder: ", folder_name);
+            if (DEBUG) console.log("addFolder: will select folder: ", folder_name);
             selectFolder(node, folder_name);
         }
         else {
@@ -227,6 +225,8 @@ const selectFolder = function (node, folder) {
     node.setDirtyCanvas(true, false);
 };
 
+const DEBUG = false;
+
 const setup_node = async function (app, node) {
     if (node.type === "fot_Workspace" || node.type === "fot_WorkspaceReadOnly") {
         if (!node.widgets) return;
@@ -238,7 +238,7 @@ const setup_node = async function (app, node) {
             if (codename_widget_callback) {
                 codename_widget_callback_result = codename_widget_callback.apply(this, arguments);
             }
-            console.log("workspace selected: ", value);
+            if (DEBUG) console.log("workspace selected: ", value);
             const workspace_codename = value;
 
             node.workspace_codename = workspace_codename;
@@ -259,12 +259,12 @@ const setup_node = async function (app, node) {
                 workspace_widget_callback_result = workspace_widget_callback.apply(this, arguments);
             }
             const workspace_codename = value;
-            console.log("workspace_codename = ", workspace_codename);
+            if (DEBUG) console.log("workspace_codename = ", workspace_codename);
 
             node.workspace_codename = workspace_codename;
 
             refreshWorkspaceData(node);
-            console.log("(",node.type,") workspace selected, refreshing downstream consumers");
+            if (DEBUG) console.log("(", node.type, ") workspace selected, refreshing downstream consumers");
             refreshDownstreamConsumers(app, node);
 
             node.setDirtyCanvas(true, false);
@@ -279,7 +279,7 @@ const setup_node = async function (app, node) {
             // console.log("(", node.id, ") setup_node workspace_codename = ", node.workspace_codename);
         }
 
-        console.log("(",node.type,") node setup, refreshing downstream consumers");
+        if (DEBUG) console.log("(", node.type, ") node setup, refreshing downstream consumers");
         refreshDownstreamConsumers(app, node);
     }
 
@@ -290,7 +290,7 @@ const setup_node = async function (app, node) {
 
         const folder_widget = node.widgets.find(w => w.name === WIDGET_NAME_FOLDER);
         if (!folder_widget.callback) return;
-        
+
         const original_widget_callback = folder_widget.callback;
         folder_widget.callback = async function (value) {
             let original_widget_callback_result;
@@ -305,87 +305,45 @@ const setup_node = async function (app, node) {
     }
 };
 
-
 // let nodes_ui_features = null;
 let nodes_ui_features_graph_setup = false;
 app.registerExtension({
     name: "comyui_fot_common.nodes_ui_features",
 
-    setup_node_ui_features(nodeSpecs, app) {
-        const DEBUG = false;
-
+    extract_node_ui_features(nodeSpecs) {
         if (nodeSpecs.input === undefined || nodeSpecs.input === null) return;
         if (nodeSpecs.input.hidden === undefined || nodeSpecs.input.hidden === null) return;
         const ui_features = nodeSpecs.input.hidden.ui_features;
         if (nodeSpecs.input === undefined || nodeSpecs.input === null) return;
-        if (! ui_features) return;
-        if (DEBUG) console.log("setup_node_ui_features: ", nodeSpecs.name);
+        if (!ui_features) return;
+        if (DEBUG) console.log("extract_node_ui_features: ", nodeSpecs.name);
         const ui_features_settings = ui_features[1];
         if (ui_features_settings === undefined || ui_features_settings === null) return;
         const list_str = ui_features_settings['default'];
         if (list_str === undefined || list_str === null) return;
         const list = JSON.parse(list_str);
-        if (DEBUG) console.log("ui_features for ",nodeSpecs.name,":",list);
-
-        if (app.ui_features === undefined) {
-            app.ui_features = {};
-        }
-        app.ui_features[nodeSpecs.name] = list;
-        // nodeSpecs.prototype.ui_features = list;
+        if (DEBUG) console.log("ui_features for ", nodeSpecs.name, ":", list);
 
         return list;
     },
 
-    // async loadedGraphNode(node, queue) {
-    //     if (!node.type.startsWith("fot_")) return; // tmp
-    //     console.log("== loadedGraphNode ==> ", node.type);
-
-    //     console.log(" - node :", node);
-
-    // },
-
     async beforeRegisterNodeDef(nodeType, nodeSpecs, app) {
-        const DEBUG = false;
-        const list = this.setup_node_ui_features(nodeSpecs, app);
-        if (list === undefined) return;
-        if (DEBUG) console.log("== beforeRegisterNodeDef ==> ", nodeSpecs.name, " = ", list);
+        // Log entry to this method    
+        const list = this.extract_node_ui_features(nodeSpecs, app);
 
-        // if (nodes_ui_features_graph_setup === false) {
-        //     nodes_ui_features_graph_setup = true;
-        //     const original_app_graph_configure = app.graph.configure;
-        //     app.graph.configure = function (graph) {
-        //         let original_app_graph_configure_result;
-        //         // if (DEBUG) console.log("##### app.graph.configure: ", arguments);
-        //         if (original_app_graph_configure) {
-        //             original_app_graph_configure_result = original_app_graph_configure.apply(this, arguments);
-        //         }
+        // Log the result of feature extraction
+        if (list === undefined) {
+            return;
+        }
+        if (DEBUG) console.log(`🔵 beforeRegisterNodeDef features found for "${nodeSpecs.name}":`, list);
 
-        //         // const original_onNodeAdded = this.onNodeAdded;
-        //         // this.onNodeAdded = function (node) {
-        //         //     let original_onNodeAdded_result;
-        //         //     if (original_onNodeAdded) {
-        //         //         original_onNodeAdded_result = original_onNodeAdded.apply(this, arguments);
-        //         //     }
-        //         //     if (DEBUG) console.log("====> graph.onNodeAdded");
-        //         //     if (DEBUG) console.log("  ==  node = ", node.id, "=", node.type);
-        //         //     const ui_features = app.ui_features[node.type];
-        //         //     if (ui_features === undefined) return original_onNodeAdded_result;
-        //         //     if (DEBUG) console.log("====> ", node.id, ", ", node.type, "=", ui_features);
+        if (DEBUG) console.log("== ", nodeSpecs.name, ":ui_features = ", list);
 
-        //         //     return original_onNodeAdded_result;
-        //         // };
-
-        //         if (DEBUG) console.log("##### checking existing nodes");
-        //         for (var i = 0, l = graph.nodes.length; i < l; i++) {
-        //             var node = graph.nodes[i];
-        //             const ui_features = app.ui_features[node.type];
-        //             if (ui_features === undefined) continue;
-        //             if (DEBUG) console.log("====> ", node.id, ", ", node.type, "=", ui_features);
-        //         }
-
-        //         return original_app_graph_configure_result;
-        //     };
-        // }
+        if (window.fot_ui_features === undefined) {
+            window.fot_ui_features = {};
+        }
+        window.fot_ui_features[nodeSpecs.name] = list;
+        if (DEBUG) console.log("updated window.fot_ui_features: ", window.fot_ui_features);
     }
 });
 
@@ -399,12 +357,12 @@ app.registerExtension({
         if (DEBUG) console.log("register extension ", this.name, "for", nodeSpecs.name);
 
         const onConnectInput = nodeType.prototype.onConnectInput;
-        nodeType.prototype.onConnectInput = function(slot_index, link_type, link_info, output_info) {            
+        nodeType.prototype.onConnectInput = function (slot_index, link_type, link_info, output_info) {
             const orig_return = onConnectInput?.apply(this, arguments);
             if (DEBUG) console.log("onConnectInput: ", arguments);
             if (DEBUG) console.log("  > orig_return = ", orig_return);
             if (DEBUG) console.log("this: ", this);
-            setTimeout( async () => {
+            setTimeout(async () => {
                 const fullNode = app.graph.getNodeById(this.id);
                 if (DEBUG) console.log("fullNode: ", fullNode);
                 const workspaceNode = await findUpstreamWorkspace(app, fullNode);
@@ -413,11 +371,11 @@ app.registerExtension({
             }, 500);
             return orig_return;
         };
-    
+
         const disconnectInput = nodeType.prototype.disconnectInput;
-        nodeType.prototype.disconnectInput = function(slot, keepReroutes) {
-            if (DEBUG) console.log("disconnectInput: ", arguments);                
-            
+        nodeType.prototype.disconnectInput = function (slot, keepReroutes) {
+            if (DEBUG) console.log("disconnectInput: ", arguments);
+
             return disconnectInput?.apply(this, arguments);
         };
     }
@@ -479,7 +437,7 @@ app.registerExtension({
 
     async beforeRegisterNodeDef(nodeType, nodeSpecs, app) {
         if (nodeSpecs.name !== "fot_Folder") return;
-        const DEBUG = true;
+        const DEBUG = false;
         if (DEBUG) console.log("register extension ", this.name);
 
         nodeSpecs.input.required.folder = [[]]
@@ -493,7 +451,6 @@ app.registerExtension({
 
         const onNodeCreated = nodeType.prototype.onNodeCreated;
         nodeType.prototype.onNodeCreated = function () {
-            if (DEBUG) console.log("onNodeCreated: ", this.id, this);
             const node = this;
 
             this.addCustomWidget({
@@ -549,7 +506,7 @@ app.registerExtension({
         const onNodeCreated = nodeType.prototype.onNodeCreated;
         nodeType.prototype.onNodeCreated = function () {
             const node = this;
-            if (DEBUG) console.log("(", node.id, " : ",node.type,") onNodeCreated, , this = ", this);
+            if (DEBUG) console.log("(", node.id, " : ", node.type, ") onNodeCreated, , this = ", this);
 
             if (nodeSpecs.name === "fot_Workspace") {
                 this.addCustomWidget({
@@ -574,7 +531,7 @@ app.registerExtension({
             });
 
             const w = this.widgets.find(w => w.name === "workspace_hash");
-            if (DEBUG) console.log("(", node.id, " : ",node.type,") - workspace_hash = ", w);
+            if (DEBUG) console.log("(", node.id, " : ", node.type, ") - workspace_hash = ", w);
             if (w) w.hidden = true;
 
             refreshWorkspaces(node);
@@ -587,7 +544,7 @@ app.registerExtension({
         const onConfigure = nodeType.prototype.onConfigure;
         nodeType.prototype.onConfigure = async function (node) {
             if (onConfigure) onConfigure.apply(this, arguments);
-            if (DEBUG) console.log("(", node.id, " : ",node.type,") onConfigure");
+            if (DEBUG) console.log("(", node.id, " : ", node.type, ") onConfigure");
 
             // refreshWorkspaceData(this);
 

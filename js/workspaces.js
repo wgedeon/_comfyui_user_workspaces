@@ -1,9 +1,21 @@
 
 export const is_workspace_consumer = function (app, node_type) {
-    return app.ui_features && app.ui_features[node_type] && "is_workspace_consumer" in app.ui_features[node_type];
+    try {
+        return window.fot_ui_features && window.fot_ui_features[node_type]
+        && "is_workspace_consumer" in window.fot_ui_features[node_type];
+    }
+    catch (e) {
+        console.log("error: ", e);
+    }
 }
+
 export const is_workspace_producer = function (app, node_type) {
-    return app.ui_features && app.ui_features[node_type] && "is_workspace_producer" in app.ui_features[node_type];
+    try {
+        return window.fot_ui_features && window.fot_ui_features[node_type] && "is_workspace_producer" in window.fot_ui_features[node_type];
+    }
+    catch (e) {
+        console.log("error: ", e);
+    }
 }
 
 export const findUpstreamWorkspace = async function (app, node) {
@@ -86,9 +98,9 @@ export const findUpstreamWorkspace = async function (app, node) {
         }
     }
 
-    if (app.ui_features
-        && app.ui_features[upstreamNode.type]
-        && "is_workspace_producer" in app.ui_features[upstreamNode.type]
+    if (window.fot_ui_features
+        && window.fot_ui_features[upstreamNode.type]
+        && "is_workspace_producer" in window.fot_ui_features[upstreamNode.type]
     ) {
         if (DEBUG) console.log("[", node.id, "]   > ", upstreamNode.id, " is a is_workspace_producer, recursing");
         return findUpstreamWorkspace(app, upstreamNode);
@@ -112,7 +124,7 @@ export const findUpstreamWorkspace = async function (app, node) {
         return upstreamNode;
     }
 
-    console.log("app.ui_features[node.type] = ", app.ui_features[node.type]);
+    console.log("window.fot_ui_features[node.type] = ", window.fot_ui_features[node.type]);
 
     throw new Error("Unexpected, workspace is not a fot_Workspace* or a Reroute! it is a " + upstreamNode.type);
 };
