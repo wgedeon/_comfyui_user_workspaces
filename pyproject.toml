@@ -1,12 +1,12 @@
 [project]
-name = "comfyui_user_workspaces"
-description = "Provides a structured model and helper nodes for organizing output files in ComfyUI."
-version = "1.0.2"
+name = "_comfyui_user_workspaces"
+description = "Provides a structured model and helper nodes for organizing output files in ComfyUI by adding Workspace and Folder."
+version = "2.0.0"
 license = { file = "LICENSE" }
 dependencies = ["python_path"]
 
 [project.urls]
-Repository = "https://github.com/wgedeon/comfyui_user_workspaces"
+Repository = "https://github.com/wgedeon/_comfyui_user_workspaces"
 
 [tool.comfy]
 PublisherId = "felleroftrees"
